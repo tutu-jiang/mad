@@ -1,0 +1,556 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>【极乐事件簿】节奏榜编辑器</title>
+  <meta name="description" content="极乐事件簿节奏榜编辑器，可拖拽角色头像排序并保存为图片。" />
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" defer></script>
+  <style>
+    :root {
+      --bg: #0d1729;
+      --panel: #111d31;
+      --panel-strong: #17243a;
+      --line: #2a3b55;
+      --line-soft: rgba(117, 153, 198, 0.25);
+      --text: #eef7ff;
+      --muted: #8ea5c4;
+      --cyan: #16d9ff;
+      --cyan-dark: #0898bf;
+      --button: #2b3e59;
+      --shadow: rgba(0, 0, 0, 0.35);
+      --avatar-size: 86px;
+      --avatar-gap: 12px;
+      --tier-label-width: 86px;
+      --tier-row-min-height: 106px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans SC", Arial, sans-serif;
+      background:
+        radial-gradient(circle at 20% 0%, rgba(30, 90, 140, 0.22), transparent 32rem),
+        linear-gradient(180deg, #0b1425 0%, var(--bg) 42%, #081120 100%);
+    }
+
+    a {
+      color: var(--cyan);
+      text-decoration: none;
+      transition: color 0.18s ease;
+    }
+
+    a:hover {
+      color: #71efff;
+      text-decoration: underline;
+    }
+
+    button,
+    label.upload-card {
+      font: inherit;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .page {
+      width: min(1120px, calc(100vw - 40px));
+      margin: 0 auto;
+      padding: 18px 0 32px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 150px 1fr;
+      gap: 16px;
+      align-items: start;
+      margin-bottom: 18px;
+    }
+
+    .game-icon {
+      max-width: 145px;
+      width: 100%;
+      height: auto;
+      object-fit: contain;
+      filter: drop-shadow(0 12px 18px var(--shadow));
+    }
+
+    .footer-info {
+      margin-top: 24px;
+      margin-bottom: 0;
+    }
+
+    .link-list {
+      display: grid;
+      gap: 12px;
+      padding-top: 6px;
+      font-size: 16px;
+      line-height: 1.5;
+    }
+
+    .qq-link {
+      display: inline-flex;
+      align-items: center;
+      min-height: 26px;
+      padding: 1px 10px;
+      border-radius: 4px;
+      background: rgba(16, 42, 68, 0.85);
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 16px;
+      padding: 0 16px 15px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    h1 {
+      margin: 0 0 4px;
+      color: var(--cyan);
+      font-size: clamp(28px, 4vw, 34px);
+      line-height: 1.25;
+      text-shadow: 0 0 18px rgba(22, 217, 255, 0.18);
+    }
+
+    .tips {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .btn {
+      min-width: 62px;
+      border: 0;
+      border-radius: 4px;
+      padding: 10px 18px;
+      color: #fff;
+      background: var(--button);
+      font-weight: 700;
+      transition: transform 0.16s ease, filter 0.16s ease, background 0.16s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.08);
+    }
+
+    .btn.primary {
+      background: linear-gradient(135deg, #13bae4, var(--cyan-dark));
+    }
+
+    .tier-board {
+      padding: 8px;
+      border: 1px solid rgba(58, 78, 111, 0.45);
+      background: rgba(10, 19, 34, 0.36);
+    }
+
+    .tier-row {
+      display: grid;
+      grid-template-columns: var(--tier-label-width) minmax(0, 1fr);
+      min-height: var(--tier-row-min-height);
+      margin-bottom: 8px;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      overflow: hidden;
+      background: rgba(17, 29, 49, 0.94);
+    }
+
+    .tier-row:last-of-type {
+      margin-bottom: 0;
+    }
+
+    .tier-label {
+      display: grid;
+      place-items: center;
+      min-height: var(--tier-row-min-height);
+      color: #081120;
+      font-size: 24px;
+      font-weight: 900;
+      text-shadow: 0 1px 0 rgba(255, 255, 255, 0.28);
+    }
+
+    .tier-label.t0 { background: #ff4a50; }
+    .tier-label.t05 { background: #ff883d; }
+    .tier-label.t1 { background: #ffd43d; }
+    .tier-label.t2 { background: #39ff2d; }
+    .tier-label.t3 { background: #3eabed; }
+
+    .drop-zone {
+      display: flex;
+      align-content: flex-start;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: var(--avatar-gap);
+      min-height: var(--tier-row-min-height);
+      padding: 10px;
+      background: rgba(18, 30, 50, 0.72);
+      transition: background 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .drop-zone.drag-over {
+      background: rgba(18, 72, 99, 0.42);
+      box-shadow: inset 0 0 0 2px rgba(22, 217, 255, 0.46);
+    }
+
+    .watermark {
+      margin: 10px 0 0;
+      color: rgba(142, 165, 196, 0.58);
+      font-size: 12px;
+      font-style: italic;
+      text-align: right;
+    }
+
+    .pool {
+      margin-top: 40px;
+      padding: 26px 26px 24px;
+      border: 1px dashed rgba(117, 153, 198, 0.38);
+      border-radius: 10px;
+      background: rgba(13, 25, 43, 0.72);
+    }
+
+    .pool-title {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      margin: 0 0 18px;
+      font-size: 22px;
+      line-height: 1.2;
+    }
+
+    .pool-title::before {
+      content: "";
+      width: 8px;
+      height: 24px;
+      background: var(--cyan);
+      box-shadow: 0 0 16px rgba(22, 217, 255, 0.35);
+    }
+
+    .character-pool {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--avatar-gap);
+      min-height: 118px;
+    }
+
+    .avatar {
+      width: var(--avatar-size);
+      height: var(--avatar-size);
+      border: 2px solid rgba(228, 199, 112, 0.9);
+      border-radius: 4px;
+      padding: 3px;
+      background: linear-gradient(145deg, #55442c, #222c3d 56%, #07101e);
+      box-shadow: 0 5px 12px rgba(0, 0, 0, 0.32);
+      object-fit: cover;
+      object-position: center;
+      transition: transform 0.16s ease, opacity 0.16s ease, box-shadow 0.16s ease;
+    }
+
+    .avatar:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.42), 0 0 0 2px rgba(22, 217, 255, 0.24);
+    }
+
+    .avatar.dragging {
+      opacity: 0.45;
+      transform: scale(0.96);
+    }
+
+    .upload-card {
+      display: grid;
+      place-items: center;
+      width: var(--avatar-size);
+      height: var(--avatar-size);
+      border: 2px dashed var(--cyan-dark);
+      border-radius: 4px;
+      color: #65edff;
+      background: rgba(8, 22, 39, 0.72);
+      font-size: 13px;
+      font-weight: 700;
+      text-align: center;
+      transition: background 0.16s ease, border-color 0.16s ease, transform 0.16s ease;
+    }
+
+    .upload-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--cyan);
+      background: rgba(8, 51, 74, 0.78);
+    }
+
+    .upload-card strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 30px;
+      line-height: 1;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    @media (max-width: 760px) {
+      :root {
+        --avatar-size: 68px;
+        --avatar-gap: 9px;
+        --tier-label-width: 62px;
+        --tier-row-min-height: 86px;
+      }
+
+      .page {
+        width: min(100% - 20px, 1120px);
+        padding-top: 12px;
+      }
+
+      .hero {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
+      .game-icon {
+        max-width: 145px;
+      }
+
+      .toolbar {
+        align-items: stretch;
+        flex-direction: column;
+        padding-inline: 0;
+      }
+
+      .actions {
+        justify-content: flex-start;
+      }
+
+      .tier-board,
+      .pool {
+        padding: 10px;
+      }
+
+      .tier-label {
+        font-size: 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="toolbar" aria-label="节奏榜操作区">
+      <div>
+        <h1>【极乐事件簿】节奏榜编辑器</h1>
+        <p class="tips">拖拽头像进行排序，加速环境下图片加载更快</p>
+      </div>
+      <div class="actions">
+        <button class="btn" type="button" id="resetBtn">重置</button>
+        <button class="btn primary" type="button" id="saveBtn">保存为图片</button>
+      </div>
+    </section>
+
+    <section class="tier-board" id="captureArea" aria-label="节奏榜画布">
+      <div class="tier-row">
+        <div class="tier-label t0">T0</div>
+        <div class="drop-zone" data-zone="t0" aria-label="T0 分区"></div>
+      </div>
+      <div class="tier-row">
+        <div class="tier-label t05">T0.5</div>
+        <div class="drop-zone" data-zone="t05" aria-label="T0.5 分区"></div>
+      </div>
+      <div class="tier-row">
+        <div class="tier-label t1">T1</div>
+        <div class="drop-zone" data-zone="t1" aria-label="T1 分区"></div>
+      </div>
+      <div class="tier-row">
+        <div class="tier-label t2">T2</div>
+        <div class="drop-zone" data-zone="t2" aria-label="T2 分区"></div>
+      </div>
+      <div class="tier-row">
+        <div class="tier-label t3">T3</div>
+        <div class="drop-zone" data-zone="t3" aria-label="T3 分区"></div>
+      </div>
+      <p class="watermark">Generated by Tier Editor</p>
+    </section>
+
+    <section class="pool" aria-label="角色池">
+      <h2 class="pool-title">角色池</h2>
+      <div class="character-pool drop-zone" id="characterPool" data-zone="pool"></div>
+    </section>
+
+    <footer class="hero footer-info" aria-label="极乐事件簿节奏榜编辑器信息">
+      <img class="game-icon" src="img/icon.png" alt="极乐事件簿" />
+      <div class="link-list">
+        <div>极乐事件簿 X GameKee 攻略网站： <a href="https://www.gamekee.com/mad/" target="_blank" rel="noopener noreferrer">www.gamekee.com/mad/</a></div>
+        <div>玩家QQ群： <a class="qq-link" href="http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&amp;k=h0mc3L2wSvfbTpddyo1BPLEUJjv4oecv&amp;authKey=UwQugUd8nFOaaAgMgwSyobQCmSUHH4rtcPi51%2BXb9gb97lZqoGFlbLU%2FloYiw7k3&amp;noverify=0&amp;group_code=806779419" target="_blank" rel="noopener noreferrer">806779419</a></div>
+      </div>
+    </footer>
+  </main>
+
+  <template id="uploadTemplate">
+    <label class="upload-card" for="avatarUpload">
+      <span><strong>+</strong>上传头像</span>
+    </label>
+  </template>
+  <input class="sr-only" id="avatarUpload" type="file" accept="image/*" multiple />
+
+  <script>
+    const CHARACTER_COUNT = 39;
+    const characterPool = document.querySelector('#characterPool');
+    const uploadInput = document.querySelector('#avatarUpload');
+    const uploadTemplate = document.querySelector('#uploadTemplate');
+    const zones = Array.from(document.querySelectorAll('.drop-zone'));
+    let draggedAvatar = null;
+    let uploadedIndex = 0;
+
+    function createAvatar(src, name) {
+      const avatar = document.createElement('img');
+      avatar.className = 'avatar';
+      avatar.src = src;
+      avatar.alt = name;
+      avatar.draggable = true;
+      avatar.loading = 'eager';
+      avatar.decoding = 'async';
+      avatar.addEventListener('dragstart', handleDragStart);
+      avatar.addEventListener('dragend', handleDragEnd);
+      return avatar;
+    }
+
+    function renderUploadCard() {
+      characterPool.appendChild(uploadTemplate.content.firstElementChild.cloneNode(true));
+    }
+
+    function renderInitialCharacters() {
+      characterPool.replaceChildren();
+      for (let i = 1; i <= CHARACTER_COUNT; i += 1) {
+        characterPool.appendChild(createAvatar(`img/${i}.png`, `极乐事件簿角色头像 ${i}`));
+      }
+      renderUploadCard();
+    }
+
+    function handleDragStart(event) {
+      draggedAvatar = event.currentTarget;
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData('text/plain', draggedAvatar.alt);
+      requestAnimationFrame(() => draggedAvatar.classList.add('dragging'));
+    }
+
+    function handleDragEnd() {
+      if (draggedAvatar) {
+        draggedAvatar.classList.remove('dragging');
+      }
+      draggedAvatar = null;
+      zones.forEach((zone) => zone.classList.remove('drag-over'));
+    }
+
+    function getInsertBeforeElement(zone, x, y) {
+      const draggableAvatars = [...zone.querySelectorAll('.avatar:not(.dragging)')];
+      return draggableAvatars.reduce((closest, child) => {
+        const box = child.getBoundingClientRect();
+        const offsetY = y - box.top - box.height / 2;
+        const offsetX = x - box.left - box.width / 2;
+        const score = Math.abs(offsetY) * 2 + Math.abs(offsetX);
+        if (offsetY < box.height / 2 && offsetX < box.width / 2 && score < closest.score) {
+          return { score, element: child };
+        }
+        return closest;
+      }, { score: Number.POSITIVE_INFINITY, element: null }).element;
+    }
+
+    zones.forEach((zone) => {
+      zone.addEventListener('dragover', (event) => {
+        event.preventDefault();
+        zone.classList.add('drag-over');
+        if (!draggedAvatar) return;
+        const beforeElement = getInsertBeforeElement(zone, event.clientX, event.clientY);
+        const uploadCard = zone.querySelector('.upload-card');
+        if (beforeElement) {
+          zone.insertBefore(draggedAvatar, beforeElement);
+        } else if (uploadCard) {
+          zone.insertBefore(draggedAvatar, uploadCard);
+        } else {
+          zone.appendChild(draggedAvatar);
+        }
+      });
+
+      zone.addEventListener('dragleave', (event) => {
+        if (!zone.contains(event.relatedTarget)) {
+          zone.classList.remove('drag-over');
+        }
+      });
+
+      zone.addEventListener('drop', (event) => {
+        event.preventDefault();
+        zone.classList.remove('drag-over');
+      });
+    });
+
+    uploadInput.addEventListener('change', (event) => {
+      [...event.target.files].forEach((file) => {
+        if (!file.type.startsWith('image/')) return;
+        uploadedIndex += 1;
+        const avatar = createAvatar(URL.createObjectURL(file), `上传头像 ${uploadedIndex}`);
+        const uploadCard = characterPool.querySelector('.upload-card');
+        characterPool.insertBefore(avatar, uploadCard);
+      });
+      uploadInput.value = '';
+    });
+
+    document.querySelector('#resetBtn').addEventListener('click', () => {
+      if (confirm('确定要重置节奏榜吗？当前排序会被清空。')) {
+        renderInitialCharacters();
+      }
+    });
+
+    document.querySelector('#saveBtn').addEventListener('click', async () => {
+      const saveButton = document.querySelector('#saveBtn');
+      const captureArea = document.querySelector('#captureArea');
+      if (!window.html2canvas) {
+        alert('图片保存组件仍在加载，请稍后再试。');
+        return;
+      }
+
+      saveButton.disabled = true;
+      saveButton.textContent = '生成中...';
+      try {
+        const canvas = await html2canvas(captureArea, {
+          backgroundColor: '#0d1729',
+          scale: Math.min(window.devicePixelRatio || 1, 2),
+          useCORS: true,
+          allowTaint: true
+        });
+        const link = document.createElement('a');
+        link.download = '极乐事件簿-节奏榜.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      } catch (error) {
+        console.error(error);
+        alert('保存图片失败，请刷新页面后重试。');
+      } finally {
+        saveButton.disabled = false;
+        saveButton.textContent = '保存为图片';
+      }
+    });
+
+    renderInitialCharacters();
+  </script>
+</body>
+</html>
