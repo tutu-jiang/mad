@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
@@ -413,7 +413,9 @@
   <input class="sr-only" id="avatarUpload" type="file" accept="image/*" multiple />
 
   <script>
-    const CHARACTER_COUNT = 39;
+    // 自动从 img/1.png 开始连续加载头像；以后新增 img/40.png、img/41.png 等连续编号文件时无需改代码。
+    const FIRST_CHARACTER_INDEX = 1;
+    const MAX_CHARACTER_INDEX = 200;
     const characterPool = document.querySelector('#characterPool');
     const uploadInput = document.querySelector('#avatarUpload');
     const uploadTemplate = document.querySelector('#uploadTemplate');
@@ -438,10 +440,22 @@
       characterPool.appendChild(uploadTemplate.content.firstElementChild.cloneNode(true));
     }
 
-    function renderInitialCharacters() {
+    function loadAvatarIfExists(index) {
+      return new Promise((resolve) => {
+        const src = `img/${index}.png`;
+        const probe = new Image();
+        probe.onload = () => resolve(createAvatar(src, `极乐事件簿角色头像 ${index}`));
+        probe.onerror = () => resolve(null);
+        probe.src = src;
+      });
+    }
+
+    async function renderInitialCharacters() {
       characterPool.replaceChildren();
-      for (let i = 1; i <= CHARACTER_COUNT; i += 1) {
-        characterPool.appendChild(createAvatar(`img/${i}.png`, `极乐事件簿角色头像 ${i}`));
+      for (let i = FIRST_CHARACTER_INDEX; i <= MAX_CHARACTER_INDEX; i += 1) {
+        const avatar = await loadAvatarIfExists(i);
+        if (!avatar) break;
+        characterPool.appendChild(avatar);
       }
       renderUploadCard();
     }
