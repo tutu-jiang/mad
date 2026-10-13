@@ -481,6 +481,7 @@
     function createAvatar(src, name, starCount = 0) {
       const avatar = document.createElement('div');
       avatar.className = 'avatar';
+      avatar.dataset.stars = String(starCount);
       avatar.setAttribute('role', 'img');
       avatar.setAttribute('aria-label', starCount ? `${name}，${starCount}星` : name);
       avatar.draggable = true;
@@ -518,6 +519,12 @@
       characterPool.appendChild(uploadTemplate.content.firstElementChild.cloneNode(true));
     }
 
+    function insertInitialAvatar(avatar) {
+      const firstLowerStarAvatar = [...characterPool.querySelectorAll('.avatar')]
+        .find((existing) => Number(existing.dataset.stars) < Number(avatar.dataset.stars));
+      characterPool.insertBefore(avatar, firstLowerStarAvatar || characterPool.querySelector('.upload-card'));
+    }
+
     function loadAvatarIfExists(index) {
       const extensions = ['webp', 'png'];
       function tryNextExtension() {
@@ -536,7 +543,7 @@
 
     async function renderInitialCharacters() {
       const currentRender = ++renderSequence;
-      characterPool.replaceChildren();
+      zones.forEach((zone) => zone.replaceChildren());
       for (let start = FIRST_CHARACTER_INDEX; start <= MAX_CHARACTER_INDEX; start += AVATAR_BATCH_SIZE) {
         const batchSize = Math.min(AVATAR_BATCH_SIZE, MAX_CHARACTER_INDEX - start + 1);
         const avatars = await Promise.all(Array.from(
@@ -548,7 +555,7 @@
             renderUploadCard();
             return;
           }
-          characterPool.appendChild(avatar);
+          insertInitialAvatar(avatar);
         }
       }
       renderUploadCard();
