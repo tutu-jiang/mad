@@ -413,7 +413,7 @@
   <input class="sr-only" id="avatarUpload" type="file" accept="image/*" multiple />
 
   <script>
-    // 自动从 img/1.png 开始连续加载头像；以后新增 img/40.png、img/41.png 等连续编号文件时无需改代码。
+    // 按编号连续加载头像，支持 PNG 和 WebP；新增连续编号图片时无需改代码。
     const FIRST_CHARACTER_INDEX = 1;
     const MAX_CHARACTER_INDEX = 200;
     const characterPool = document.querySelector('#characterPool');
@@ -441,13 +441,19 @@
     }
 
     function loadAvatarIfExists(index) {
-      return new Promise((resolve) => {
-        const src = `img/${index}.png`;
-        const probe = new Image();
-        probe.onload = () => resolve(createAvatar(src, `极乐事件簿角色头像 ${index}`));
-        probe.onerror = () => resolve(null);
-        probe.src = src;
-      });
+      const extensions = ['png', 'webp'];
+      function tryNextExtension() {
+        const extension = extensions.shift();
+        if (!extension) return Promise.resolve(null);
+        const src = `img/${index}.${extension}`;
+        return new Promise((resolve) => {
+          const probe = new Image();
+          probe.onload = () => resolve(createAvatar(src, `极乐事件簿角色头像 ${index}`));
+          probe.onerror = () => resolve(tryNextExtension());
+          probe.src = src;
+        });
+      }
+      return tryNextExtension();
     }
 
     async function renderInitialCharacters() {
