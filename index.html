@@ -416,12 +416,14 @@
     // 按编号连续加载头像，支持 PNG 和 WebP；新增连续编号图片时无需改代码。
     const FIRST_CHARACTER_INDEX = 1;
     const MAX_CHARACTER_INDEX = 200;
+    const AVATAR_BATCH_SIZE = 8;
     const characterPool = document.querySelector('#characterPool');
     const uploadInput = document.querySelector('#avatarUpload');
     const uploadTemplate = document.querySelector('#uploadTemplate');
     const zones = Array.from(document.querySelectorAll('.drop-zone'));
     let draggedAvatar = null;
     let uploadedIndex = 0;
+    let renderSequence = 0;
 
     function createAvatar(src, name) {
       const avatar = document.createElement('img');
@@ -441,7 +443,7 @@
     }
 
     function loadAvatarIfExists(index) {
-      const extensions = ['png', 'webp'];
+      const extensions = ['webp', 'png'];
       function tryNextExtension() {
         const extension = extensions.shift();
         if (!extension) return Promise.resolve(null);
@@ -457,11 +459,21 @@
     }
 
     async function renderInitialCharacters() {
+      const currentRender = ++renderSequence;
       characterPool.replaceChildren();
-      for (let i = FIRST_CHARACTER_INDEX; i <= MAX_CHARACTER_INDEX; i += 1) {
-        const avatar = await loadAvatarIfExists(i);
-        if (!avatar) break;
-        characterPool.appendChild(avatar);
+      for (let start = FIRST_CHARACTER_INDEX; start <= MAX_CHARACTER_INDEX; start += AVATAR_BATCH_SIZE) {
+        const batchSize = Math.min(AVATAR_BATCH_SIZE, MAX_CHARACTER_INDEX - start + 1);
+        const avatars = await Promise.all(Array.from(
+          { length: batchSize }, (_, offset) => loadAvatarIfExists(start + offset)
+        ));
+        if (currentRender !== renderSequence) return;
+        for (const avatar of avatars) {
+          if (!avatar) {
+            renderUploadCard();
+            return;
+          }
+          characterPool.appendChild(avatar);
+        }
       }
       renderUploadCard();
     }
