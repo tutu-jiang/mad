@@ -21,6 +21,7 @@
       --shadow: rgba(0, 0, 0, 0.35);
       --avatar-size: 86px;
       --avatar-gap: 12px;
+      --star-size: 18px;
       --tier-label-width: 86px;
       --tier-row-min-height: 106px;
     }
@@ -249,6 +250,8 @@
     }
 
     .avatar {
+      position: relative;
+      flex: none;
       width: var(--avatar-size);
       height: var(--avatar-size);
       border: 2px solid rgba(228, 199, 112, 0.9);
@@ -256,9 +259,36 @@
       padding: 3px;
       background: linear-gradient(145deg, #55442c, #222c3d 56%, #07101e);
       box-shadow: 0 5px 12px rgba(0, 0, 0, 0.32);
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      transition: transform 0.16s ease, opacity 0.16s ease, box-shadow 0.16s ease;
+    }
+
+    .avatar-image {
+      display: block;
+      width: 100%;
+      height: 100%;
       object-fit: cover;
       object-position: center;
-      transition: transform 0.16s ease, opacity 0.16s ease, box-shadow 0.16s ease;
+      pointer-events: none;
+      -webkit-touch-callout: none;
+    }
+
+    .avatar-stars {
+      position: absolute;
+      right: 3px;
+      bottom: 3px;
+      display: flex;
+      pointer-events: none;
+      filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.85));
+    }
+
+    .avatar-stars img {
+      display: block;
+      width: var(--star-size);
+      height: var(--star-size);
     }
 
     .avatar:hover {
@@ -269,6 +299,18 @@
     .avatar.dragging {
       opacity: 0.45;
       transform: scale(0.96);
+    }
+
+    .avatar.touch-dragging {
+      opacity: 0.35;
+    }
+
+    .avatar.touch-drag-preview {
+      position: fixed;
+      z-index: 1000;
+      pointer-events: none;
+      opacity: 0.9;
+      transform: translate(-50%, -50%) scale(1.08);
     }
 
     .upload-card {
@@ -315,6 +357,7 @@
       :root {
         --avatar-size: 68px;
         --avatar-gap: 9px;
+        --star-size: 15px;
         --tier-label-width: 62px;
         --tier-row-min-height: 86px;
       }
@@ -417,24 +460,57 @@
     const FIRST_CHARACTER_INDEX = 1;
     const MAX_CHARACTER_INDEX = 200;
     const AVATAR_BATCH_SIZE = 8;
+    const THREE_STAR_IDS = new Set([1, 2, 3, 32, 33, 34, 35, 36, 37, 38, 40, 41, 42, 43, 44, 45, 46, 47, 48]);
+    const TWO_STAR_IDS = new Set([4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 39]);
     const characterPool = document.querySelector('#characterPool');
     const uploadInput = document.querySelector('#avatarUpload');
     const uploadTemplate = document.querySelector('#uploadTemplate');
     const zones = Array.from(document.querySelectorAll('.drop-zone'));
     let draggedAvatar = null;
+    let touchDrag = null;
     let uploadedIndex = 0;
     let renderSequence = 0;
 
-    function createAvatar(src, name) {
-      const avatar = document.createElement('img');
+    function getStarCount(index) {
+      if (THREE_STAR_IDS.has(index)) return 3;
+      if (TWO_STAR_IDS.has(index)) return 2;
+      if (index >= 17 && index <= 31) return 1;
+      return 0;
+    }
+
+    function createAvatar(src, name, starCount = 0) {
+      const avatar = document.createElement('div');
       avatar.className = 'avatar';
-      avatar.src = src;
-      avatar.alt = name;
+      avatar.setAttribute('role', 'img');
+      avatar.setAttribute('aria-label', starCount ? `${name}，${starCount}星` : name);
       avatar.draggable = true;
-      avatar.loading = 'eager';
-      avatar.decoding = 'async';
+      const portrait = document.createElement('img');
+      portrait.className = 'avatar-image';
+      portrait.src = src;
+      portrait.alt = '';
+      portrait.draggable = false;
+      portrait.loading = 'eager';
+      portrait.decoding = 'async';
+      avatar.appendChild(portrait);
+      if (starCount) {
+        const stars = document.createElement('span');
+        stars.className = 'avatar-stars';
+        stars.setAttribute('aria-hidden', 'true');
+        for (let i = 0; i < starCount; i += 1) {
+          const star = document.createElement('img');
+          star.src = 'img/star.webp';
+          star.alt = '';
+          stars.appendChild(star);
+        }
+        avatar.appendChild(stars);
+      }
       avatar.addEventListener('dragstart', handleDragStart);
       avatar.addEventListener('dragend', handleDragEnd);
+      avatar.addEventListener('pointerdown', handleTouchPointerDown);
+      avatar.addEventListener('pointermove', handleTouchPointerMove);
+      avatar.addEventListener('pointerup', handleTouchPointerUp);
+      avatar.addEventListener('pointercancel', handleTouchPointerCancel);
+      avatar.addEventListener('contextmenu', (event) => event.preventDefault());
       return avatar;
     }
 
@@ -450,7 +526,7 @@
         const src = `img/${index}.${extension}`;
         return new Promise((resolve) => {
           const probe = new Image();
-          probe.onload = () => resolve(createAvatar(src, `极乐事件簿角色头像 ${index}`));
+          probe.onload = () => resolve(createAvatar(src, `极乐事件簿角色头像 ${index}`, getStarCount(index)));
           probe.onerror = () => resolve(tryNextExtension());
           probe.src = src;
         });
@@ -481,7 +557,7 @@
     function handleDragStart(event) {
       draggedAvatar = event.currentTarget;
       event.dataTransfer.effectAllowed = 'move';
-      event.dataTransfer.setData('text/plain', draggedAvatar.alt);
+      event.dataTransfer.setData('text/plain', draggedAvatar.getAttribute('aria-label'));
       requestAnimationFrame(() => draggedAvatar.classList.add('dragging'));
     }
 
@@ -493,8 +569,99 @@
       zones.forEach((zone) => zone.classList.remove('drag-over'));
     }
 
+    function getTouchDropZone(x, y) {
+      const hit = document.elementFromPoint(x, y);
+      return hit?.closest('.drop-zone') || hit?.closest('.tier-row')?.querySelector('.drop-zone') || null;
+    }
+
+    function updateTouchDrag() {
+      if (!touchDrag?.active) return;
+      touchDrag.preview.style.left = `${touchDrag.x}px`;
+      touchDrag.preview.style.top = `${touchDrag.y}px`;
+      const zone = getTouchDropZone(touchDrag.x, touchDrag.y);
+      zones.forEach((item) => item.classList.toggle('drag-over', item === zone));
+      touchDrag.zone = zone;
+    }
+
+    function autoScrollTouchDrag() {
+      if (!touchDrag?.active) return;
+      const edge = 80;
+      const speed = touchDrag.y < edge ? -14 : touchDrag.y > window.innerHeight - edge ? 14 : 0;
+      if (speed) {
+        window.scrollBy(0, speed);
+        updateTouchDrag();
+      }
+      touchDrag.frame = requestAnimationFrame(autoScrollTouchDrag);
+    }
+
+    function startTouchDrag() {
+      if (!touchDrag || touchDrag.active) return;
+      touchDrag.active = true;
+      touchDrag.avatar.classList.add('touch-dragging');
+      touchDrag.preview = touchDrag.avatar.cloneNode(true);
+      touchDrag.preview.classList.add('touch-drag-preview');
+      touchDrag.preview.setAttribute('aria-hidden', 'true');
+      document.body.appendChild(touchDrag.preview);
+      updateTouchDrag();
+      touchDrag.frame = requestAnimationFrame(autoScrollTouchDrag);
+    }
+
+    function finishTouchDrag(commit) {
+      if (!touchDrag) return;
+      const state = touchDrag;
+      clearTimeout(state.timer);
+      cancelAnimationFrame(state.frame);
+      if (state.active) {
+        const zone = state.zone;
+        if (commit && zone) {
+          const beforeElement = getInsertBeforeElement(zone, state.x, state.y);
+          const uploadCard = zone.querySelector('.upload-card');
+          if (beforeElement) zone.insertBefore(state.avatar, beforeElement);
+          else if (uploadCard) zone.insertBefore(state.avatar, uploadCard);
+          else zone.appendChild(state.avatar);
+        }
+        state.preview.remove();
+        state.avatar.classList.remove('touch-dragging');
+      }
+      state.avatar.draggable = true;
+      zones.forEach((zone) => zone.classList.remove('drag-over'));
+      touchDrag = null;
+    }
+
+    function handleTouchPointerDown(event) {
+      if (event.pointerType !== 'touch' || touchDrag) return;
+      event.preventDefault();
+      const avatar = event.currentTarget;
+      avatar.draggable = false;
+      avatar.setPointerCapture(event.pointerId);
+      touchDrag = {
+        avatar, pointerId: event.pointerId, x: event.clientX, y: event.clientY,
+        startX: event.clientX, startY: event.clientY, active: false,
+        timer: setTimeout(startTouchDrag, 200), frame: 0, preview: null, zone: null
+      };
+    }
+
+    function handleTouchPointerMove(event) {
+      if (!touchDrag || event.pointerId !== touchDrag.pointerId) return;
+      touchDrag.x = event.clientX;
+      touchDrag.y = event.clientY;
+      if (!touchDrag.active && Math.hypot(touchDrag.x - touchDrag.startX, touchDrag.y - touchDrag.startY) > 8) {
+        clearTimeout(touchDrag.timer);
+        startTouchDrag();
+      }
+      updateTouchDrag();
+    }
+
+    function handleTouchPointerUp(event) {
+      if (touchDrag?.pointerId === event.pointerId) finishTouchDrag(true);
+    }
+
+    function handleTouchPointerCancel(event) {
+      if (touchDrag?.pointerId === event.pointerId) finishTouchDrag(false);
+    }
+
     function getInsertBeforeElement(zone, x, y) {
-      const draggableAvatars = [...zone.querySelectorAll('.avatar:not(.dragging)')];
+      const draggableAvatars = [...zone.querySelectorAll('.avatar:not(.dragging):not(.touch-dragging)')];
       return draggableAvatars.reduce((closest, child) => {
         const box = child.getBoundingClientRect();
         const offsetY = y - box.top - box.height / 2;
@@ -563,16 +730,23 @@
       saveButton.disabled = true;
       saveButton.textContent = '生成中...';
       try {
+        await Promise.all([...captureArea.querySelectorAll('img')].map((img) => img.decode().catch(() => {})));
         const canvas = await html2canvas(captureArea, {
           backgroundColor: '#0d1729',
           scale: Math.min(window.devicePixelRatio || 1, 2),
           useCORS: true,
           allowTaint: true
         });
+        const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+        if (!blob) throw new Error('无法生成图片文件');
+        const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.download = '极乐事件簿-节奏榜.png';
-        link.href = canvas.toDataURL('image/png');
+        link.href = url;
+        document.body.appendChild(link);
         link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
       } catch (error) {
         console.error(error);
         alert('保存图片失败，请刷新页面后重试。');
