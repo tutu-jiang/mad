@@ -197,10 +197,6 @@
       letter-spacing: 1px;
     }
 
-    .board-heading span {
-      color: #8a9cb7;
-      font-size: 12px;
-    }
 
     .tier-row {
       display: grid;
@@ -280,32 +276,13 @@
       background: linear-gradient(90deg, rgba(var(--tier-rgb), 0.045), rgba(var(--tier-rgb), 0.01));
     }
 
-    .tier-row .drop-zone:empty {
-      align-content: center;
-    }
 
-    .tier-row .drop-zone:empty::after {
-      content: "拖入角色";
-      align-self: center;
-      margin: auto;
-      color: #71839f;
-      font-size: 12px;
-      letter-spacing: 2px;
-      pointer-events: none;
-    }
 
     .tier-row .drop-zone.drag-over {
       background: rgba(var(--tier-rgb), 0.12);
       box-shadow: inset 0 0 0 2px rgba(var(--tier-rgb), 0.5);
     }
 
-    .watermark {
-      margin: 10px 0 0;
-      color: #71809b;
-      font-size: 10px;
-      letter-spacing: 2px;
-      text-align: right;
-    }
 
     .pool {
       margin-top: 40px;
@@ -568,10 +545,7 @@
         font-size: 14px;
       }
 
-      .board-heading span {
-        font-size: 10px;
-      }
-
+  
       .tier-row .drop-zone {
         padding: 9px;
       }
@@ -592,7 +566,7 @@
     </section>
 
     <section class="tier-board" id="captureArea" aria-label="节奏榜画布">
-      <div class="board-heading"><strong>角色强度排行</strong><span>拖入角色 · 自由排序</span></div>
+      <div class="board-heading"><strong>角色强度排行</strong></div>
       <div class="tier-row" data-tier="t0">
         <div class="tier-label t0">T0</div>
         <div class="drop-zone" data-zone="t0" aria-label="T0 分区"></div>
@@ -613,7 +587,6 @@
         <div class="tier-label t3">T3</div>
         <div class="drop-zone" data-zone="t3" aria-label="T3 分区"></div>
       </div>
-      <p class="watermark">MAKE DRAMA · TIER LIST</p>
     </section>
 
     <section class="pool" aria-label="角色池">
