@@ -81,7 +81,7 @@
     }
 
     .footer-info {
-      grid-template-columns: 150px minmax(0, 1fr) 150px;
+      grid-template-columns: 150px minmax(0, 1fr) 240px;
       align-items: center;
       margin-top: 24px;
       margin-bottom: 0;
@@ -89,7 +89,7 @@
 
     .team-logo-link {
       display: block;
-      width: 150px;
+      width: 240px;
       max-width: 100%;
       justify-self: end;
       transition: transform 0.18s ease;
@@ -177,9 +177,9 @@
 
     .tier-board {
       padding: 20px;
-      border: 1px solid #e6e7f5;
+      border: 1px solid #293a53;
       border-radius: 20px;
-      background: linear-gradient(135deg, #f3faff, #f6f3ff 60%, #fff7fa);
+      background: linear-gradient(135deg, #111f33, #111a2d 60%, #151b30);
       box-shadow: 0 16px 48px rgba(3, 12, 28, 0.2);
     }
 
@@ -189,7 +189,7 @@
       justify-content: space-between;
       gap: 12px;
       margin: 0 2px 16px;
-      color: #414263;
+      color: #dce8f8;
     }
 
     .board-heading strong {
@@ -198,7 +198,7 @@
     }
 
     .board-heading span {
-      color: #85849e;
+      color: #8a9cb7;
       font-size: 12px;
     }
 
@@ -211,15 +211,15 @@
       border: 1px solid rgba(var(--tier-rgb), 0.2);
       border-radius: 14px;
       overflow: hidden;
-      background: #fff;
+      background: #101d30;
       box-shadow: 0 2px 8px rgba(61, 56, 98, 0.03);
     }
 
-    .tier-row[data-tier="t0"] { --tier-rgb: 230, 97, 139; --tier-ink: #ac3d67; }
-    .tier-row[data-tier="t05"] { --tier-rgb: 156, 126, 221; --tier-ink: #7552af; }
-    .tier-row[data-tier="t1"] { --tier-rgb: 89, 163, 217; --tier-ink: #357da9; }
-    .tier-row[data-tier="t2"] { --tier-rgb: 85, 175, 169; --tier-ink: #36847e; }
-    .tier-row[data-tier="t3"] { --tier-rgb: 139, 149, 176; --tier-ink: #69758f; }
+    .tier-row[data-tier="t0"] { --tier-rgb: 230, 97, 139; --tier-ink: #f395b6; }
+    .tier-row[data-tier="t05"] { --tier-rgb: 156, 126, 221; --tier-ink: #c4acf4; }
+    .tier-row[data-tier="t1"] { --tier-rgb: 89, 163, 217; --tier-ink: #91c8ee; }
+    .tier-row[data-tier="t2"] { --tier-rgb: 85, 175, 169; --tier-ink: #89d2cb; }
+    .tier-row[data-tier="t3"] { --tier-rgb: 139, 149, 176; --tier-ink: #b2bfd8; }
 
     .tier-row:last-of-type {
       margin-bottom: 0;
@@ -288,7 +288,7 @@
       content: "拖入角色";
       align-self: center;
       margin: auto;
-      color: #aaaabd;
+      color: #71839f;
       font-size: 12px;
       letter-spacing: 2px;
       pointer-events: none;
@@ -301,7 +301,7 @@
 
     .watermark {
       margin: 10px 0 0;
-      color: #9a97ae;
+      color: #71809b;
       font-size: 10px;
       letter-spacing: 2px;
       text-align: right;
@@ -489,8 +489,8 @@
       }
 
       .footer-info {
-        grid-template-columns: 145px minmax(0, 1fr);
-        gap: 18px;
+        grid-template-columns: minmax(0, 0.72fr) minmax(0, 1.28fr);
+        gap: 14px;
       }
 
       .footer-info .game-icon {
@@ -506,7 +506,33 @@
       .footer-info .team-logo-link {
         grid-column: 2;
         grid-row: 1;
-        width: 145px;
+        width: 220px;
+      }
+
+      .character-pool {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+        padding: 0;
+      }
+
+      .character-pool .avatar {
+        width: 100%;
+      }
+
+      .character-pool .avatar-name {
+        font-size: 11px;
+      }
+
+      .character-pool .avatar-stars img {
+        width: clamp(11px, 3.6vw, 15px);
+        height: clamp(11px, 3.6vw, 15px);
+      }
+
+      .character-pool .upload-card {
+        width: 100%;
+        height: auto;
+        aspect-ratio: 68 / 90;
       }
 
       .toolbar {
