@@ -253,7 +253,7 @@
       position: relative;
       flex: none;
       width: var(--avatar-size);
-      height: var(--avatar-size);
+      height: auto;
       border: 2px solid rgba(228, 199, 112, 0.9);
       border-radius: 4px;
       padding: 3px;
@@ -264,6 +264,28 @@
       -webkit-user-select: none;
       -webkit-touch-callout: none;
       transition: transform 0.16s ease, opacity 0.16s ease, box-shadow 0.16s ease;
+    }
+
+    .avatar-portrait {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1;
+      overflow: hidden;
+    }
+
+    .avatar-name {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 34px;
+      padding: 4px 1px 1px;
+      font-size: 12px;
+      line-height: 1.25;
+      font-weight: 700;
+      text-align: center;
+      color: #f4e8c7;
+      overflow-wrap: anywhere;
+      pointer-events: none;
     }
 
     .avatar-image {
@@ -317,7 +339,7 @@
       display: grid;
       place-items: center;
       width: var(--avatar-size);
-      height: var(--avatar-size);
+      height: calc(var(--avatar-size) + 34px);
       border: 2px dashed var(--cyan-dark);
       border-radius: 4px;
       color: #65edff;
@@ -456,12 +478,57 @@
   <input class="sr-only" id="avatarUpload" type="file" accept="image/*" multiple />
 
   <script>
-    // 按编号连续加载头像，支持 PNG 和 WebP；新增连续编号图片时无需改代码。
-    const FIRST_CHARACTER_INDEX = 1;
-    const MAX_CHARACTER_INDEX = 200;
-    const AVATAR_BATCH_SIZE = 8;
-    const THREE_STAR_IDS = new Set([1, 2, 3, 32, 33, 34, 35, 36, 37, 38, 40, 41, 42, 43, 44, 45, 46, 47, 48]);
-    const TWO_STAR_IDS = new Set([4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 39]);
+    // 角色文件以名称命名，按三星、二星、一星排列。
+    const CHARACTER_DATA = [
+      {"name": "伊莎贝尔", "src": "img/伊莎贝尔.webp", "stars": 3},
+      {"name": "拉娜", "src": "img/拉娜.webp", "stars": 3},
+      {"name": "比安卡", "src": "img/比安卡.webp", "stars": 3},
+      {"name": "艾丝黛儿", "src": "img/艾丝黛儿.webp", "stars": 3},
+      {"name": "拉菲娜", "src": "img/拉菲娜.webp", "stars": 3},
+      {"name": "克莱尔（泳装）", "src": "img/克莱尔（泳装）.webp", "stars": 3},
+      {"name": "马内（泳装）", "src": "img/马内（泳装）.webp", "stars": 3},
+      {"name": "奥布莉亚", "src": "img/奥布莉亚.webp", "stars": 3},
+      {"name": "尤莉亚", "src": "img/尤莉亚.webp", "stars": 3},
+      {"name": "维多利亚", "src": "img/维多利亚.webp", "stars": 3},
+      {"name": "秀智", "src": "img/秀智.webp", "stars": 3},
+      {"name": "艾丽西亚", "src": "img/艾丽西亚.webp", "stars": 3},
+      {"name": "知世", "src": "img/知世.webp", "stars": 3},
+      {"name": "阿罗涅", "src": "img/阿罗涅.webp", "stars": 3},
+      {"name": "伊内斯", "src": "img/伊内斯.webp", "stars": 3},
+      {"name": "夏洛特", "src": "img/夏洛特.webp", "stars": 3},
+      {"name": "米德温", "src": "img/米德温.webp", "stars": 3},
+      {"name": "瓦伦蒂娜", "src": "img/瓦伦蒂娜.webp", "stars": 3},
+      {"name": "凯西", "src": "img/凯西.webp", "stars": 3},
+      {"name": "露西亚", "src": "img/露西亚.webp", "stars": 2},
+      {"name": "马内", "src": "img/马内.webp", "stars": 2},
+      {"name": "玛莎", "src": "img/玛莎.webp", "stars": 2},
+      {"name": "丹茜", "src": "img/丹茜.webp", "stars": 2},
+      {"name": "红蝶", "src": "img/红蝶.webp", "stars": 2},
+      {"name": "索菲亚", "src": "img/索菲亚.webp", "stars": 2},
+      {"name": "艾米丽", "src": "img/艾米丽.webp", "stars": 2},
+      {"name": "芙蕾雅", "src": "img/芙蕾雅.webp", "stars": 2},
+      {"name": "赛文", "src": "img/赛文.webp", "stars": 2},
+      {"name": "卡莎", "src": "img/卡莎.webp", "stars": 2},
+      {"name": "珍妮", "src": "img/珍妮.webp", "stars": 2},
+      {"name": "荷莉", "src": "img/荷莉.webp", "stars": 2},
+      {"name": "日向", "src": "img/日向.webp", "stars": 2},
+      {"name": "米欧", "src": "img/米欧.webp", "stars": 2},
+      {"name": "罗曼斯爵士", "src": "img/罗曼斯爵士.webp", "stars": 1},
+      {"name": "爱莲", "src": "img/爱莲.webp", "stars": 1},
+      {"name": "克莱尔", "src": "img/克莱尔.webp", "stars": 1},
+      {"name": "特丽丝", "src": "img/特丽丝.webp", "stars": 1},
+      {"name": "影", "src": "img/影.webp", "stars": 1},
+      {"name": "蕾安娜", "src": "img/蕾安娜.webp", "stars": 1},
+      {"name": "罗娜", "src": "img/罗娜.webp", "stars": 1},
+      {"name": "珍", "src": "img/珍.webp", "stars": 1},
+      {"name": "塞塔", "src": "img/塞塔.webp", "stars": 1},
+      {"name": "莱拉", "src": "img/莱拉.webp", "stars": 1},
+      {"name": "艾琳", "src": "img/艾琳.webp", "stars": 1},
+      {"name": "雫", "src": "img/雫.webp", "stars": 1},
+      {"name": "凯伦", "src": "img/凯伦.webp", "stars": 1},
+      {"name": "莎拉", "src": "img/莎拉.webp", "stars": 1},
+      {"name": "露米娜", "src": "img/露米娜.webp", "stars": 1}
+    ];
     const characterPool = document.querySelector('#characterPool');
     const uploadInput = document.querySelector('#avatarUpload');
     const uploadTemplate = document.querySelector('#uploadTemplate');
@@ -469,14 +536,6 @@
     let draggedAvatar = null;
     let touchDrag = null;
     let uploadedIndex = 0;
-    let renderSequence = 0;
-
-    function getStarCount(index) {
-      if (THREE_STAR_IDS.has(index)) return 3;
-      if (TWO_STAR_IDS.has(index)) return 2;
-      if (index >= 17 && index <= 31) return 1;
-      return 0;
-    }
 
     function createAvatar(src, name, starCount = 0) {
       const avatar = document.createElement('div');
@@ -485,6 +544,8 @@
       avatar.setAttribute('role', 'img');
       avatar.setAttribute('aria-label', starCount ? `${name}，${starCount}星` : name);
       avatar.draggable = true;
+      const portraitFrame = document.createElement('div');
+      portraitFrame.className = 'avatar-portrait';
       const portrait = document.createElement('img');
       portrait.className = 'avatar-image';
       portrait.src = src;
@@ -492,19 +553,24 @@
       portrait.draggable = false;
       portrait.loading = 'eager';
       portrait.decoding = 'async';
-      avatar.appendChild(portrait);
+      portraitFrame.appendChild(portrait);
+      avatar.appendChild(portraitFrame);
       if (starCount) {
         const stars = document.createElement('span');
         stars.className = 'avatar-stars';
         stars.setAttribute('aria-hidden', 'true');
         for (let i = 0; i < starCount; i += 1) {
           const star = document.createElement('img');
-          star.src = 'img/star.webp';
+          star.src = 'img/start.webp';
           star.alt = '';
           stars.appendChild(star);
         }
-        avatar.appendChild(stars);
+        portraitFrame.appendChild(stars);
       }
+      const label = document.createElement('span');
+      label.className = 'avatar-name';
+      label.textContent = name;
+      avatar.appendChild(label);
       avatar.addEventListener('dragstart', handleDragStart);
       avatar.addEventListener('dragend', handleDragEnd);
       avatar.addEventListener('pointerdown', handleTouchPointerDown);
@@ -519,45 +585,11 @@
       characterPool.appendChild(uploadTemplate.content.firstElementChild.cloneNode(true));
     }
 
-    function insertInitialAvatar(avatar) {
-      const firstLowerStarAvatar = [...characterPool.querySelectorAll('.avatar')]
-        .find((existing) => Number(existing.dataset.stars) < Number(avatar.dataset.stars));
-      characterPool.insertBefore(avatar, firstLowerStarAvatar || characterPool.querySelector('.upload-card'));
-    }
-
-    function loadAvatarIfExists(index) {
-      const extensions = ['webp', 'png'];
-      function tryNextExtension() {
-        const extension = extensions.shift();
-        if (!extension) return Promise.resolve(null);
-        const src = `img/${index}.${extension}`;
-        return new Promise((resolve) => {
-          const probe = new Image();
-          probe.onload = () => resolve(createAvatar(src, `极乐事件簿角色头像 ${index}`, getStarCount(index)));
-          probe.onerror = () => resolve(tryNextExtension());
-          probe.src = src;
-        });
-      }
-      return tryNextExtension();
-    }
-
-    async function renderInitialCharacters() {
-      const currentRender = ++renderSequence;
+    function renderInitialCharacters() {
       zones.forEach((zone) => zone.replaceChildren());
-      for (let start = FIRST_CHARACTER_INDEX; start <= MAX_CHARACTER_INDEX; start += AVATAR_BATCH_SIZE) {
-        const batchSize = Math.min(AVATAR_BATCH_SIZE, MAX_CHARACTER_INDEX - start + 1);
-        const avatars = await Promise.all(Array.from(
-          { length: batchSize }, (_, offset) => loadAvatarIfExists(start + offset)
-        ));
-        if (currentRender !== renderSequence) return;
-        for (const avatar of avatars) {
-          if (!avatar) {
-            renderUploadCard();
-            return;
-          }
-          insertInitialAvatar(avatar);
-        }
-      }
+      CHARACTER_DATA.forEach(({ src, name, stars }) => {
+        characterPool.appendChild(createAvatar(src, name, stars));
+      });
       renderUploadCard();
     }
 
@@ -713,7 +745,7 @@
       [...event.target.files].forEach((file) => {
         if (!file.type.startsWith('image/')) return;
         uploadedIndex += 1;
-        const avatar = createAvatar(URL.createObjectURL(file), `上传头像 ${uploadedIndex}`);
+        const avatar = createAvatar(URL.createObjectURL(file), file.name.replace(/\.[^.]+$/, "") || `上传头像 ${uploadedIndex}`);
         const uploadCard = characterPool.querySelector('.upload-card');
         characterPool.insertBefore(avatar, uploadCard);
       });
