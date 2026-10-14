@@ -221,6 +221,12 @@
       margin-bottom: 0;
     }
 
+    .tier-row.has-tier-controls { grid-template-columns: var(--tier-label-width) minmax(0, 1fr) 84px; }
+    .tier-controls { display: flex; align-items: center; justify-content: center; gap: 6px; padding-right: 10px; }
+    .tier-control { display: grid; place-items: center; width: 30px; height: 30px; border: 1px solid #47627e; border-radius: 50%; color: #b9dcf8; background: #20334b; font: 24px/1 Arial, sans-serif; cursor: pointer; }
+    .tier-control:hover { background: #315575; border-color: #86cbe9; }
+    .tier-control:disabled { opacity: .3; cursor: default; }
+
     .tier-label {
       display: flex;
       flex-direction: column;
@@ -443,6 +449,9 @@
     }
 
     @media (max-width: 760px) {
+      h1 { font-size: clamp(17px, 5.2vw, 26px); white-space: nowrap; }
+      .tier-controls { display: none; }
+      .tier-row.has-tier-controls { grid-template-columns: var(--tier-label-width) minmax(0, 1fr); }
       :root {
         --avatar-size: 68px;
         --avatar-gap: 9px;
@@ -545,7 +554,7 @@
         font-size: 14px;
       }
 
-  
+
       .tier-row .drop-zone {
         padding: 9px;
       }
@@ -668,7 +677,9 @@
     const characterPool = document.querySelector('#characterPool');
     const uploadInput = document.querySelector('#avatarUpload');
     const uploadTemplate = document.querySelector('#uploadTemplate');
-    const zones = Array.from(document.querySelectorAll('.drop-zone'));
+    let zones = Array.from(document.querySelectorAll('.drop-zone'));
+    const desktopTiers = window.matchMedia('(min-width: 761px)');
+    const initialTierRows = [...document.querySelectorAll('.tier-row')].map(row => row.cloneNode(true));
     let draggedAvatar = null;
     let touchDrag = null;
     let uploadedIndex = 0;
@@ -722,12 +733,86 @@
     }
 
     function renderInitialCharacters() {
+      restoreDefaultTiers();
       zones.forEach((zone) => zone.replaceChildren());
       CHARACTER_DATA.forEach(({ src, name, stars }) => {
         characterPool.appendChild(createAvatar(src, name, stars));
       });
       renderUploadCard();
     }
+
+    function nextTierLabel() {
+      const last = document.querySelector('.tier-row:last-of-type .tier-label').textContent;
+      if (last === 'T0') return 'T0.5';
+      if (last === 'T0.5') return 'T1';
+      return 'T' + (Number(last.slice(1)) + 1);
+    }
+
+    function updateTierControls() {
+      document.querySelector('.tier-controls')?.remove();
+      document.querySelectorAll('.has-tier-controls').forEach(row => row.classList.remove('has-tier-controls'));
+      if (!desktopTiers.matches) return;
+      const rows = [...document.querySelectorAll('.tier-row')];
+      const last = rows[rows.length - 1];
+      const controls = document.createElement('div');
+      controls.className = 'tier-controls';
+      controls.setAttribute('data-html2canvas-ignore', 'true');
+      const minus = document.createElement('button');
+      minus.type = 'button'; minus.className = 'tier-control'; minus.textContent = '−';
+      minus.setAttribute('aria-label', '删除最后一档 ' + last.querySelector('.tier-label').textContent);
+      minus.title = rows.length === 1 ? 'T0 不能删除' : minus.getAttribute('aria-label');
+      minus.disabled = rows.length === 1;
+      minus.addEventListener('click', removeLastTier);
+      const plus = document.createElement('button');
+      plus.type = 'button'; plus.className = 'tier-control'; plus.textContent = '+';
+      plus.setAttribute('aria-label', '新增 ' + nextTierLabel()); plus.title = plus.getAttribute('aria-label');
+      plus.addEventListener('click', addTier);
+      controls.append(minus, plus); last.appendChild(controls); last.classList.add('has-tier-controls');
+    }
+
+    function addTier() {
+      if (!desktopTiers.matches) return;
+      const name = nextTierLabel();
+      const row = document.createElement('div'); row.className = 'tier-row';
+      const key = name.toLowerCase().replace('.', '');
+      row.dataset.tier = key;
+      if (Number(name.slice(1)) > 3) { row.style.setProperty('--tier-rgb', '139, 149, 176'); row.style.setProperty('--tier-ink', '#b2bfd8'); }
+      const label = document.createElement('div'); label.className = 'tier-label'; label.textContent = name;
+      const zone = document.createElement('div'); zone.className = 'drop-zone'; zone.dataset.zone = key; zone.setAttribute('aria-label', name + ' 分区');
+      bindDropZone(zone); row.append(label, zone); document.querySelector('#captureArea').appendChild(row);
+      zones = [...document.querySelectorAll('.drop-zone')]; updateTierControls();
+    }
+
+    function returnTierAvatars(row) {
+      const uploadCard = characterPool.querySelector('.upload-card');
+      row.querySelectorAll('.avatar').forEach(avatar => characterPool.insertBefore(avatar, uploadCard));
+    }
+
+    function removeLastTier() {
+      if (!desktopTiers.matches) return;
+      const rows = [...document.querySelectorAll('.tier-row')];
+      if (rows.length === 1) return;
+      const last = rows[rows.length - 1]; returnTierAvatars(last); last.remove();
+      zones = [...document.querySelectorAll('.drop-zone')]; updateTierControls();
+    }
+
+    function restoreDefaultTiers() {
+      const board = document.querySelector('#captureArea');
+      const remaining = new Map([...board.querySelectorAll('.tier-row')].map(row => [row.dataset.tier, [...row.querySelectorAll('.avatar')]]));
+      board.querySelectorAll('.tier-row').forEach(row => {
+        if (!initialTierRows.some(base => base.dataset.tier === row.dataset.tier)) returnTierAvatars(row);
+        row.remove();
+      });
+      initialTierRows.forEach(base => {
+        const row = base.cloneNode(true); const zone = row.querySelector('.drop-zone');
+        zone.append(...(remaining.get(row.dataset.tier) || [])); bindDropZone(zone); board.appendChild(row);
+      });
+      zones = [...document.querySelectorAll('.drop-zone')]; updateTierControls();
+    }
+
+    desktopTiers.addEventListener('change', () => {
+      if (!desktopTiers.matches) restoreDefaultTiers(); else updateTierControls();
+    });
 
     function handleDragStart(event) {
       draggedAvatar = event.currentTarget;
@@ -849,7 +934,7 @@
       }, { score: Number.POSITIVE_INFINITY, element: null }).element;
     }
 
-    zones.forEach((zone) => {
+    function bindDropZone(zone) {
       zone.addEventListener('dragover', (event) => {
         event.preventDefault();
         zone.classList.add('drag-over');
@@ -875,7 +960,8 @@
         event.preventDefault();
         zone.classList.remove('drag-over');
       });
-    });
+    }
+    zones.forEach(bindDropZone);
 
     uploadInput.addEventListener('change', (event) => {
       [...event.target.files].forEach((file) => {
@@ -910,7 +996,8 @@
           backgroundColor: '#0d1729',
           scale: Math.min(window.devicePixelRatio || 1, 2),
           useCORS: true,
-          allowTaint: true
+          allowTaint: true,
+          onclone: (doc) => doc.querySelectorAll('.has-tier-controls').forEach(row => row.classList.remove('has-tier-controls'))
         });
         const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
         if (!blob) throw new Error('无法生成图片文件');
