@@ -274,17 +274,17 @@
     }
 
     .avatar-name {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 34px;
-      padding: 4px 1px 1px;
+      display: block;
+      height: 22px;
+      padding: 3px 1px 1px;
       font-size: 12px;
-      line-height: 1.25;
+      line-height: 18px;
       font-weight: 700;
       text-align: center;
       color: #f4e8c7;
-      overflow-wrap: anywhere;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: clip;
       pointer-events: none;
     }
 
@@ -339,7 +339,7 @@
       display: grid;
       place-items: center;
       width: var(--avatar-size);
-      height: calc(var(--avatar-size) + 34px);
+      height: calc(var(--avatar-size) + 22px);
       border: 2px dashed var(--cyan-dark);
       border-radius: 4px;
       color: #65edff;
@@ -424,7 +424,7 @@
     <section class="toolbar" aria-label="节奏榜操作区">
       <div>
         <h1>【极乐事件簿】节奏榜编辑器</h1>
-        <p class="tips">拖拽头像进行排序，加速环境下图片加载更快</p>
+        <p class="tips">拖拽头像进行排序，如角色缺失可自行添加头像</p>
       </div>
       <div class="actions">
         <button class="btn" type="button" id="resetBtn">重置</button>
