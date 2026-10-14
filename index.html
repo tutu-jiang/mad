@@ -22,8 +22,8 @@
       --avatar-size: 86px;
       --avatar-gap: 12px;
       --star-size: 18px;
-      --tier-label-width: 86px;
-      --tier-row-min-height: 106px;
+      --tier-label-width: 100px;
+      --tier-row-min-height: 124px;
     }
 
     * {
@@ -81,8 +81,28 @@
     }
 
     .footer-info {
+      grid-template-columns: 150px minmax(0, 1fr) 150px;
+      align-items: center;
       margin-top: 24px;
       margin-bottom: 0;
+    }
+
+    .team-logo-link {
+      display: block;
+      width: 150px;
+      max-width: 100%;
+      justify-self: end;
+      transition: transform 0.18s ease;
+    }
+
+    .team-logo-link:hover {
+      transform: translateY(-2px);
+    }
+
+    .team-logo-link img {
+      display: block;
+      width: 100%;
+      height: auto;
     }
 
     .link-list {
@@ -156,41 +176,86 @@
     }
 
     .tier-board {
-      padding: 8px;
-      border: 1px solid rgba(58, 78, 111, 0.45);
-      background: rgba(10, 19, 34, 0.36);
+      padding: 20px;
+      border: 1px solid #e6e7f5;
+      border-radius: 20px;
+      background: linear-gradient(135deg, #f3faff, #f6f3ff 60%, #fff7fa);
+      box-shadow: 0 16px 48px rgba(3, 12, 28, 0.2);
+    }
+
+    .board-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 0 2px 16px;
+      color: #414263;
+    }
+
+    .board-heading strong {
+      font-size: 16px;
+      letter-spacing: 1px;
+    }
+
+    .board-heading span {
+      color: #85849e;
+      font-size: 12px;
     }
 
     .tier-row {
       display: grid;
       grid-template-columns: var(--tier-label-width) minmax(0, 1fr);
       min-height: var(--tier-row-min-height);
-      margin-bottom: 8px;
-      border: 1px solid var(--line);
-      border-radius: 4px;
+      position: relative;
+      margin-bottom: 10px;
+      border: 1px solid rgba(var(--tier-rgb), 0.2);
+      border-radius: 14px;
       overflow: hidden;
-      background: rgba(17, 29, 49, 0.94);
+      background: #fff;
+      box-shadow: 0 2px 8px rgba(61, 56, 98, 0.03);
     }
+
+    .tier-row[data-tier="t0"] { --tier-rgb: 230, 97, 139; --tier-ink: #ac3d67; }
+    .tier-row[data-tier="t05"] { --tier-rgb: 156, 126, 221; --tier-ink: #7552af; }
+    .tier-row[data-tier="t1"] { --tier-rgb: 89, 163, 217; --tier-ink: #357da9; }
+    .tier-row[data-tier="t2"] { --tier-rgb: 85, 175, 169; --tier-ink: #36847e; }
+    .tier-row[data-tier="t3"] { --tier-rgb: 139, 149, 176; --tier-ink: #69758f; }
 
     .tier-row:last-of-type {
       margin-bottom: 0;
     }
 
     .tier-label {
-      display: grid;
-      place-items: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
       min-height: var(--tier-row-min-height);
-      color: #081120;
-      font-size: 24px;
-      font-weight: 900;
-      text-shadow: 0 1px 0 rgba(255, 255, 255, 0.28);
+      border-left: 4px solid rgba(var(--tier-rgb), 0.75);
+      color: var(--tier-ink);
+      background: linear-gradient(135deg, rgba(var(--tier-rgb), 0.18), rgba(var(--tier-rgb), 0.06));
+      font-family: Arial, "Microsoft YaHei", sans-serif;
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -1px;
     }
 
-    .tier-label.t0 { background: #ff4a50; }
-    .tier-label.t05 { background: #ff883d; }
-    .tier-label.t1 { background: #ffd43d; }
-    .tier-label.t2 { background: #39ff2d; }
-    .tier-label.t3 { background: #3eabed; }
+    .tier-label::before {
+      content: "TIER";
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      opacity: 0.65;
+    }
+
+    .tier-label::after {
+      content: "";
+      width: 20px;
+      height: 2px;
+      border-radius: 2px;
+      background: rgba(var(--tier-rgb), 0.55);
+    }
 
     .drop-zone {
       display: flex;
@@ -209,11 +274,36 @@
       box-shadow: inset 0 0 0 2px rgba(22, 217, 255, 0.46);
     }
 
+    .tier-row .drop-zone {
+      align-items: flex-start;
+      padding: 12px;
+      background: linear-gradient(90deg, rgba(var(--tier-rgb), 0.045), rgba(var(--tier-rgb), 0.01));
+    }
+
+    .tier-row .drop-zone:empty {
+      align-content: center;
+    }
+
+    .tier-row .drop-zone:empty::after {
+      content: "拖入角色";
+      align-self: center;
+      margin: auto;
+      color: #aaaabd;
+      font-size: 12px;
+      letter-spacing: 2px;
+      pointer-events: none;
+    }
+
+    .tier-row .drop-zone.drag-over {
+      background: rgba(var(--tier-rgb), 0.12);
+      box-shadow: inset 0 0 0 2px rgba(var(--tier-rgb), 0.5);
+    }
+
     .watermark {
       margin: 10px 0 0;
-      color: rgba(142, 165, 196, 0.58);
-      font-size: 12px;
-      font-style: italic;
+      color: #9a97ae;
+      font-size: 10px;
+      letter-spacing: 2px;
       text-align: right;
     }
 
@@ -380,8 +470,8 @@
         --avatar-size: 68px;
         --avatar-gap: 9px;
         --star-size: 15px;
-        --tier-label-width: 62px;
-        --tier-row-min-height: 86px;
+        --tier-label-width: 70px;
+        --tier-row-min-height: 110px;
       }
 
       .page {
@@ -396,6 +486,27 @@
 
       .game-icon {
         max-width: 145px;
+      }
+
+      .footer-info {
+        grid-template-columns: 145px minmax(0, 1fr);
+        gap: 18px;
+      }
+
+      .footer-info .game-icon {
+        grid-column: 1;
+        grid-row: 1;
+      }
+
+      .footer-info .link-list {
+        grid-column: 1 / -1;
+        grid-row: 2;
+      }
+
+      .footer-info .team-logo-link {
+        grid-column: 2;
+        grid-row: 1;
+        width: 145px;
       }
 
       .toolbar {
@@ -414,7 +525,29 @@
       }
 
       .tier-label {
-        font-size: 18px;
+        font-size: 22px;
+        gap: 6px;
+      }
+
+      .tier-board {
+        border-radius: 16px;
+        padding: 14px 10px;
+      }
+
+      .board-heading {
+        margin-bottom: 12px;
+      }
+
+      .board-heading strong {
+        font-size: 14px;
+      }
+
+      .board-heading span {
+        font-size: 10px;
+      }
+
+      .tier-row .drop-zone {
+        padding: 9px;
       }
     }
   </style>
@@ -433,27 +566,28 @@
     </section>
 
     <section class="tier-board" id="captureArea" aria-label="节奏榜画布">
-      <div class="tier-row">
+      <div class="board-heading"><strong>角色强度排行</strong><span>拖入角色 · 自由排序</span></div>
+      <div class="tier-row" data-tier="t0">
         <div class="tier-label t0">T0</div>
         <div class="drop-zone" data-zone="t0" aria-label="T0 分区"></div>
       </div>
-      <div class="tier-row">
+      <div class="tier-row" data-tier="t05">
         <div class="tier-label t05">T0.5</div>
         <div class="drop-zone" data-zone="t05" aria-label="T0.5 分区"></div>
       </div>
-      <div class="tier-row">
+      <div class="tier-row" data-tier="t1">
         <div class="tier-label t1">T1</div>
         <div class="drop-zone" data-zone="t1" aria-label="T1 分区"></div>
       </div>
-      <div class="tier-row">
+      <div class="tier-row" data-tier="t2">
         <div class="tier-label t2">T2</div>
         <div class="drop-zone" data-zone="t2" aria-label="T2 分区"></div>
       </div>
-      <div class="tier-row">
+      <div class="tier-row" data-tier="t3">
         <div class="tier-label t3">T3</div>
         <div class="drop-zone" data-zone="t3" aria-label="T3 分区"></div>
       </div>
-      <p class="watermark">Generated by Tier Editor</p>
+      <p class="watermark">MAKE DRAMA · TIER LIST</p>
     </section>
 
     <section class="pool" aria-label="角色池">
@@ -467,6 +601,9 @@
         <div>极乐事件簿 X GameKee 攻略网站： <a href="https://www.gamekee.com/mad/" target="_blank" rel="noopener noreferrer">www.gamekee.com/mad/</a></div>
         <div>玩家QQ群： <a class="qq-link" href="http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&amp;k=h0mc3L2wSvfbTpddyo1BPLEUJjv4oecv&amp;authKey=UwQugUd8nFOaaAgMgwSyobQCmSUHH4rtcPi51%2BXb9gb97lZqoGFlbLU%2FloYiw7k3&amp;noverify=0&amp;group_code=806779419" target="_blank" rel="noopener noreferrer">806779419</a></div>
       </div>
+      <a class="team-logo-link" href="https://www.gamekee.com/mad/708109.html" target="_blank" rel="noopener noreferrer" aria-label="极乐攻略组">
+        <img src="img/logo.png" alt="极乐攻略组" />
+      </a>
     </footer>
   </main>
 
